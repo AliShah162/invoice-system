@@ -69,82 +69,161 @@ export default function InvoiceTable({ items, setItems, onTotalChange }: Invoice
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full border-collapse text-xs print:text-[8pt]">
-        <thead>
-          <tr className="bg-gray-800 text-white text-xs print:text-[8pt]">
-            <th className="px-1 py-1 text-center w-10">Sr.</th>
-            <th className="px-1 py-1 text-left">ITEMS</th>
-            <th className="px-1 py-1 text-center w-16">QTY</th>
-            <th className="px-1 py-1 text-center w-20">U/P (₨)</th>
-            <th className="px-1 py-1 text-right w-24">AMOUNT (₨)</th>
-            <th className="px-1 py-1 text-center w-8 print:hidden">Action</th>
-           </tr>
-        </thead>
-        <tbody>
-          {items.map((item) => (
-            <tr key={item.id} className="border-b border-gray-200">
-              <td className="px-1 py-0.5 text-center text-gray-600">{item.sr}</td>
-              <td className="px-1 py-0.5">
+      {/* For mobile: Stacked card layout */}
+      <div className="block md:hidden space-y-3">
+        {items.map((item) => (
+          <div key={item.id} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+            <div className="flex justify-between items-start mb-2">
+              <span className="text-xs text-gray-500">#{item.sr}</span>
+              <button
+                onClick={() => deleteRow(item.id)}
+                className="text-red-500 hover:text-red-700"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <div className="space-y-2">
+              <div>
+                <label className="text-xs font-semibold text-gray-600">Item Name</label>
                 <input
                   type="text"
                   value={item.items}
                   onChange={(e) => updateItem(item.id, "items", e.target.value)}
-                  placeholder="Item"
-                  className="w-full px-1 py-0.5 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-emerald-500 print:border-none print:p-0"
+                  placeholder="Enter item name..."
+                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-emerald-500"
                 />
-              </td>
-              <td className="px-1 py-0.5">
-                <input
-                  type="number"
-                  value={item.quantity || ""}
-                  onChange={(e) => updateItem(item.id, "quantity", Number(e.target.value))}
-                  placeholder="0"
-                  className="w-full px-1 py-0.5 text-xs border border-gray-300 rounded text-center print:border-none print:p-0"
-                  min="0"
-                  step="1"
-                />
-              </td>
-              <td className="px-1 py-0.5">
-                <input
-                  type="number"
-                  value={item.unitPrice || ""}
-                  onChange={(e) => updateItem(item.id, "unitPrice", Number(e.target.value))}
-                  placeholder="0"
-                  className="w-full px-1 py-0.5 text-xs border border-gray-300 rounded text-center print:border-none print:p-0"
-                  min="0"
-                  step="1"
-                />
-              </td>
-              <td className="px-1 py-0.5 text-right font-semibold">
-                {item.amount.toLocaleString()}
-              </td>
-              <td className="px-1 py-0.5 text-center print:hidden">
-                <button
-                  onClick={() => deleteRow(item.id)}
-                  className="text-red-500 hover:text-red-700"
-                >
-                  <Trash2 className="w-3 h-3" />
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      
-      {items.length === 0 && (
-        <div className="text-center py-4 text-gray-400 text-sm">
-          No items added yet. Click Add Item to start.
-        </div>
-      )}
-      
-      <div className="mt-2 print:hidden">
+              </div>
+              
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs font-semibold text-gray-600">Quantity</label>
+                  <input
+                    type="number"
+                    value={item.quantity || ""}
+                    onChange={(e) => updateItem(item.id, "quantity", Number(e.target.value))}
+                    placeholder="0"
+                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded text-center"
+                    min="0"
+                    step="1"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-600">Unit Price (₨)</label>
+                  <input
+                    type="number"
+                    value={item.unitPrice || ""}
+                    onChange={(e) => updateItem(item.id, "unitPrice", Number(e.target.value))}
+                    placeholder="0"
+                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded text-center"
+                    min="0"
+                    step="1"
+                  />
+                </div>
+              </div>
+              
+              <div className="flex justify-between items-center pt-1 border-t border-gray-200">
+                <span className="text-xs font-semibold text-gray-600">Amount:</span>
+                <span className="font-bold text-emerald-600">₨ {item.amount.toLocaleString()}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+        
+        {items.length === 0 && (
+          <div className="text-center py-8 text-gray-400 text-sm bg-gray-50 rounded-lg border-2 border-dashed">
+            No items added yet. Click Add Item to start.
+          </div>
+        )}
+        
         <button
           onClick={addNewRow}
-          className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-600 text-white rounded hover:bg-emerald-700 text-xs"
+          className="w-full inline-flex items-center justify-center gap-1 px-3 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm"
         >
-          <Plus className="w-3 h-3" />
+          <Plus className="w-4 h-4" />
           Add Item
         </button>
+      </div>
+
+      {/* For tablet and desktop: Table layout */}
+      <div className="hidden md:block">
+        <table className="w-full border-collapse text-xs print:text-[8pt]">
+          <thead>
+            <tr className="bg-gray-800 text-white text-xs print:text-[8pt]">
+              <th className="px-2 py-2 text-center w-12">Sr.</th>
+              <th className="px-2 py-2 text-left min-w-[200px]">ITEMS</th>
+              <th className="px-2 py-2 text-center w-20">QTY</th>
+              <th className="px-2 py-2 text-center w-24">U/P (₨)</th>
+              <th className="px-2 py-2 text-right w-28">AMOUNT (₨)</th>
+              <th className="px-2 py-2 text-center w-10">Action</th>
+             </tr>
+          </thead>
+          <tbody>
+            {items.map((item) => (
+              <tr key={item.id} className="border-b border-gray-200">
+                <td className="px-2 py-1.5 text-center text-gray-600">{item.sr}</td>
+                <td className="px-2 py-1.5">
+                  <input
+                    type="text"
+                    value={item.items}
+                    onChange={(e) => updateItem(item.id, "items", e.target.value)}
+                    placeholder="Enter item name..."
+                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-emerald-500 print:border-none print:p-0"
+                  />
+                </td>
+                <td className="px-2 py-1.5">
+                  <input
+                    type="number"
+                    value={item.quantity || ""}
+                    onChange={(e) => updateItem(item.id, "quantity", Number(e.target.value))}
+                    placeholder="0"
+                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded text-center print:border-none print:p-0"
+                    min="0"
+                    step="1"
+                  />
+                </td>
+                <td className="px-2 py-1.5">
+                  <input
+                    type="number"
+                    value={item.unitPrice || ""}
+                    onChange={(e) => updateItem(item.id, "unitPrice", Number(e.target.value))}
+                    placeholder="0"
+                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded text-center print:border-none print:p-0"
+                    min="0"
+                    step="1"
+                  />
+                </td>
+                <td className="px-2 py-1.5 text-right font-semibold">
+                  {item.amount.toLocaleString()}
+                </td>
+                <td className="px-2 py-1.5 text-center print:hidden">
+                  <button
+                    onClick={() => deleteRow(item.id)}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        
+        {items.length === 0 && (
+          <div className="text-center py-8 text-gray-400 text-sm">
+            No items added yet. Click Add Item to start.
+          </div>
+        )}
+        
+        <div className="mt-3 print:hidden">
+          <button
+            onClick={addNewRow}
+            className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm"
+          >
+            <Plus className="w-4 h-4" />
+            Add Item
+          </button>
+        </div>
       </div>
     </div>
   );
