@@ -100,7 +100,6 @@ export default function AllInvoices({ refreshTrigger }: AllInvoicesProps) {
             <h3>Invoice #: ${invoice.invoiceNumber}</h3>
             <p>Date: ${new Date(invoice.date).toLocaleString()}</p>
             <p>Customer: ${invoice.customerInfo.customer || "-"}</p>
-            <p>Region: ${invoice.customerInfo.region || "-"}</p>
             <p>Shop Name: ${invoice.customerInfo.shopName || "-"}</p>
             <p>Contact: ${invoice.customerInfo.contact || "-"}</p>
             <table border="1" cellpadding="8" cellspacing="0">
@@ -191,8 +190,20 @@ export default function AllInvoices({ refreshTrigger }: AllInvoicesProps) {
                     <p className="text-gray-700">
                       <span className="font-semibold">Customer:</span> {invoice.customerInfo.customer || "N/A"}
                     </p>
-                    <p className="text-sm text-gray-500">
-                      Items: {invoice.items.length} | Total Items Qty: {invoice.items.reduce((sum, item) => sum + item.quantity, 0)} | Net Total: ₨ {invoice.netTotal.toLocaleString()}
+                    {invoice.customerInfo.shopName && (
+                      <p className="text-sm text-gray-600">
+                        <span className="font-semibold">Shop:</span> {invoice.customerInfo.shopName}
+                      </p>
+                    )}
+                    {/* Show first item name */}
+                    {invoice.items.length > 0 && (
+                      <p className="text-sm text-gray-600 mt-1">
+                        <span className="font-semibold">Items:</span> {invoice.items[0].items}
+                        {invoice.items.length > 1 && ` +${invoice.items.length - 1} more`}
+                      </p>
+                    )}
+                    <p className="text-sm text-gray-500 mt-1">
+                      Total Items Qty: {invoice.items.reduce((sum, item) => sum + item.quantity, 0)} | Net Total: ₨ {invoice.netTotal.toLocaleString()}
                     </p>
                   </div>
                   
@@ -311,10 +322,6 @@ export default function AllInvoices({ refreshTrigger }: AllInvoicesProps) {
                   <div>
                     <p className="text-sm text-gray-500">Customer</p>
                     <p>{selectedInvoice.customerInfo.customer || "-"}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Region</p>
-                    <p>{selectedInvoice.customerInfo.region || "-"}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Shop Name</p>

@@ -4,7 +4,6 @@ export interface Invoice {
   date: string;
   customerInfo: {
     customer: string;
-    region: string;
     shopName: string;
     contact: string;
   };
@@ -30,7 +29,7 @@ class InvoiceDB {
 
   async init() {
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open(this.dbName, 2); // Incremented version number for schema change
+      const request = indexedDB.open(this.dbName, 3); // Incremented version number for schema change
       
       request.onerror = () => reject(request.error);
       request.onsuccess = () => {

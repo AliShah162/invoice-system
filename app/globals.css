@@ -5,6 +5,21 @@
     background-color: #f9fafb;
   }
   
+  /* Responsive touch targets for mobile */
+  @media (max-width: 640px) {
+    button, 
+    [role="button"],
+    input[type="submit"] {
+      min-height: 44px;
+    }
+    
+    input, 
+    select, 
+    textarea {
+      font-size: 16px !important; /* Prevents zoom on focus in iOS */
+    }
+  }
+  
   /* Aggressive print styles for single page */
   @media print {
     * {
@@ -95,6 +110,12 @@
     h1, h2, h3 {
       margin: 0 !important;
       padding: 0 !important;
+    }
+    
+    /* Ensure content fits on page */
+    body, .max-w-7xl, main {
+      max-width: 100% !important;
+      overflow-x: visible !important;
     }
   }
 }
