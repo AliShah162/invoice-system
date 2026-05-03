@@ -44,20 +44,21 @@ const menuData: { mainHeading: string; subItems: MenuItem[] | string[] }[] = [
     subItems: [
       { name: "250ml", items: ["Mango", "Apple", "Fruit punch", "Lychee", "Anar"] },
       { name: "200ml", items: ["Mango", "Apple", "Fruit punch", "Lychee", "Anar"] },
+      { name: "125ml", items: ["Mango"] },
     ],
   },
   {
-    mainHeading: "Pet Frooti",
+    mainHeading: "Prisma",
+    subItems: [{ name: "", items: ["Mango", "Apple", "Fruit Punch", "Anar"] }],
+  },
+  {
+    mainHeading: "Frooti",
     subItems: [
       { name: "250ml", items: ["Mango", "Apple", "Peach", "Guava"] },
       { name: "500ml", items: ["Mango", "Apple", "Peach", "Guava"] },
       { name: "1000ml", items: ["Mango", "Apple", "Peach", "Guava"] },
       { name: "2000ml", items: ["Mango"] },
     ],
-  },
-  {
-    mainHeading: "Prisma",
-    subItems: [{ name: "", items: ["Mango", "Apple", "Fruit Punch", "Anar"] }],
   },
   {
     mainHeading: "Water",

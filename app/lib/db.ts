@@ -29,7 +29,7 @@ class InvoiceDB {
 
   async init() {
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open(this.dbName, 3); // Incremented version number for schema change
+      const request = indexedDB.open(this.dbName, 3);
       
       request.onerror = () => reject(request.error);
       request.onsuccess = () => {
@@ -104,4 +104,5 @@ class InvoiceDB {
   }
 }
 
+// Create and export a single instance
 export const invoiceDB = new InvoiceDB();

@@ -1,5 +1,6 @@
-import { Phone, Mail, Globe, MapPin, Truck } from "lucide-react";
+import { Phone, Mail, Globe, MapPin, Truck, Users } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 
 export default function SATradersCard() {
   return (
@@ -51,11 +52,18 @@ export default function SATradersCard() {
         </div>
       </div>
       
-      {/* Sale Invoice Heading - Minimal */}
-      <div className="mt-2 text-center print:mt-0">
+      {/* Sale Invoice Heading with Customer List Button */}
+      <div className="mt-2 text-center print:mt-0 flex items-center justify-center gap-4 flex-wrap">
         <h2 className="text-lg md:text-xl font-bold text-gray-800 border-b-2 border-emerald-500 inline-block pb-0 px-4 print:text-base print:border-b">
           Sale Invoice
         </h2>
+        <Link
+          href="/customers"
+          className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors print:hidden"
+        >
+          <Users className="w-4 h-4" />
+          Customer List
+        </Link>
       </div>
     </>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import InvoiceTable from "./InvoiceTable";
 import { Printer, Save, RefreshCw, Users } from "lucide-react";
 import { invoiceDB } from "../lib/db";
@@ -33,10 +33,29 @@ interface SavedCustomer {
 }
 
 export default function InvoiceForm({ onInvoiceSaved }: InvoiceFormProps) {
-  const [customerInfo, setCustomerInfo] = useState<CustomerInfo>({
-    customer: "",
-    shopName: "",
-    contact: "",
+  const [customerInfo, setCustomerInfo] = useState<CustomerInfo>(() => {
+    // Initialize state with selected customer if exists
+    if (typeof window !== 'undefined') {
+      const selectedCustomer = localStorage.getItem("selectedCustomer");
+      if (selectedCustomer) {
+        try {
+          const customer = JSON.parse(selectedCustomer);
+          localStorage.removeItem("selectedCustomer");
+          return {
+            customer: customer.customer,
+            shopName: customer.shopName || "",
+            contact: customer.contact || "",
+          };
+        } catch (e) {
+          console.error("Failed to load selected customer", e);
+        }
+      }
+    }
+    return {
+      customer: "",
+      shopName: "",
+      contact: "",
+    };
   });
 
   const [items, setItems] = useState<InvoiceItem[]>([]);
@@ -47,47 +66,31 @@ export default function InvoiceForm({ onInvoiceSaved }: InvoiceFormProps) {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeField, setActiveField] = useState<string>("customer");
   const suggestionRef = useRef<HTMLDivElement>(null);
+  const hasLoaded = useRef(false);
 
   const dueAmount = total - paid;
   const netTotal = total + preBalance;
 
-  // Load customer history from localStorage
-  useEffect(() => {
-    loadCustomerHistory();
-  }, []);
-
-  // Close suggestions when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (suggestionRef.current && !suggestionRef.current.contains(event.target as Node)) {
-        setShowSuggestions(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const loadCustomerHistory = () => {
+  // Function to load customer history
+  const loadCustomerHistory = useCallback(() => {
     const saved = localStorage.getItem("customerHistory");
     if (saved) {
       try {
         const customers = JSON.parse(saved);
-        // Sort by last used (most recent first)
         customers.sort((a: SavedCustomer, b: SavedCustomer) => b.lastUsed - a.lastUsed);
         setSuggestions(customers);
       } catch (e) {
         console.error("Failed to load customer history", e);
       }
     }
-  };
+  }, []);
 
-  const saveCustomerToHistory = (customer: CustomerInfo) => {
+  const saveCustomerToHistory = useCallback((customer: CustomerInfo) => {
     if (!customer.customer.trim()) return;
 
     const saved = localStorage.getItem("customerHistory");
     let customers: SavedCustomer[] = saved ? JSON.parse(saved) : [];
 
-    // Check if customer already exists
     const existingIndex = customers.findIndex(
       (c) => c.customer.toLowerCase() === customer.customer.toLowerCase()
     );
@@ -101,7 +104,6 @@ export default function InvoiceForm({ onInvoiceSaved }: InvoiceFormProps) {
     };
 
     if (existingIndex !== -1) {
-      // Update existing customer
       customers[existingIndex] = {
         ...customers[existingIndex],
         shopName: customer.shopName,
@@ -109,9 +111,7 @@ export default function InvoiceForm({ onInvoiceSaved }: InvoiceFormProps) {
         lastUsed: Date.now(),
       };
     } else {
-      // Add new customer
       customers.push(newCustomer);
-      // Keep only last 50 customers
       if (customers.length > 50) {
         customers = customers.slice(0, 50);
       }
@@ -119,12 +119,30 @@ export default function InvoiceForm({ onInvoiceSaved }: InvoiceFormProps) {
 
     localStorage.setItem("customerHistory", JSON.stringify(customers));
     loadCustomerHistory();
-  };
+  }, [loadCustomerHistory]);
+
+  // Load customer history - only once
+  useEffect(() => {
+    if (!hasLoaded.current) {
+      hasLoaded.current = true;
+      loadCustomerHistory();
+    }
+  }, [loadCustomerHistory]);
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (suggestionRef.current && !suggestionRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleCustomerInputChange = (field: keyof CustomerInfo, value: string) => {
     setCustomerInfo({ ...customerInfo, [field]: value });
     
-    // Show suggestions when typing in customer name field
     if (field === "customer") {
       setActiveField("customer");
       if (value.trim().length > 0) {
@@ -134,7 +152,7 @@ export default function InvoiceForm({ onInvoiceSaved }: InvoiceFormProps) {
         setSuggestions(filtered);
         setShowSuggestions(filtered.length > 0);
       } else {
-        loadCustomerHistory(); // Reload all suggestions
+        loadCustomerHistory();
         setShowSuggestions(suggestions.length > 0);
       }
     }
@@ -143,7 +161,7 @@ export default function InvoiceForm({ onInvoiceSaved }: InvoiceFormProps) {
   const handleFieldFocus = (field: string) => {
     setActiveField(field);
     if (field === "customer") {
-      loadCustomerHistory(); // Refresh suggestions
+      loadCustomerHistory();
       setShowSuggestions(suggestions.length > 0);
     } else {
       setShowSuggestions(false);
@@ -174,7 +192,6 @@ export default function InvoiceForm({ onInvoiceSaved }: InvoiceFormProps) {
       return;
     }
 
-    // Save customer to history
     saveCustomerToHistory(customerInfo);
 
     const invoiceData = {
