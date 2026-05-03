@@ -21,11 +21,16 @@ interface InvoiceTableProps {
 // Menu data structure
 interface MenuItem {
   name: string;
-  subHeading?: string;
   items: string[];
 }
 
-const menuData: { mainHeading: string; subItems: MenuItem[] | string[] }[] = [
+type SubItem = MenuItem | string[];
+type Section = {
+  mainHeading: string;
+  subItems: SubItem[];
+};
+
+const menuData: Section[] = [
   {
     mainHeading: "CSD",
     subItems: [
@@ -66,6 +71,16 @@ const menuData: { mainHeading: string; subItems: MenuItem[] | string[] }[] = [
   },
 ];
 
+// Type guard to check if subItem is MenuItem
+function isMenuItem(subItem: SubItem): subItem is MenuItem {
+  return typeof subItem === 'object' && 'name' in subItem && 'items' in subItem;
+}
+
+// Type guard to check if subItem is string array
+function isStringArray(subItem: SubItem): subItem is string[] {
+  return Array.isArray(subItem);
+}
+
 export default function InvoiceTable({ items, setItems, onTotalChange }: InvoiceTableProps) {
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
@@ -83,26 +98,46 @@ export default function InvoiceTable({ items, setItems, onTotalChange }: Invoice
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Calculate position when dropdown opens - FIXED to position better
+  // Calculate position when dropdown opens - Optimized for mobile
   useEffect(() => {
     if (openDropdownId && buttonRefs.current.has(openDropdownId)) {
       const button = buttonRefs.current.get(openDropdownId);
       if (button) {
         const rect = button.getBoundingClientRect();
         const viewportHeight = window.innerHeight;
-        const dropdownHeight = 400; // Approximate height of dropdown
+        const viewportWidth = window.innerWidth;
+        const dropdownHeight = 400;
+        const dropdownWidth = viewportWidth < 768 ? viewportWidth - 32 : 384;
         
-        // Calculate if dropdown fits below, otherwise show above
-        let topPosition = rect.bottom + window.scrollY;
+        // Calculate top position
+        let topPosition = rect.bottom + window.scrollY + 5;
         
-        // If dropdown would go off screen, position it above the button
+        // If dropdown would go off screen at bottom, position it above
         if (rect.bottom + dropdownHeight > viewportHeight) {
-          topPosition = rect.top + window.scrollY - dropdownHeight;
+          topPosition = rect.top + window.scrollY - dropdownHeight - 5;
+        }
+        
+        // Calculate left position
+        let leftPosition = rect.left + window.scrollX;
+        
+        // On mobile, try to keep dropdown within screen bounds
+        if (viewportWidth < 768) {
+          leftPosition = Math.max(16, leftPosition);
+          if (leftPosition + dropdownWidth > viewportWidth) {
+            leftPosition = viewportWidth - dropdownWidth - 16;
+          }
+        } else {
+          if (leftPosition + dropdownWidth > viewportWidth) {
+            leftPosition = viewportWidth - dropdownWidth - 10;
+          }
+          if (leftPosition < 10) {
+            leftPosition = 10;
+          }
         }
         
         setDropdownPosition({
           top: topPosition,
-          left: rect.left + window.scrollX,
+          left: leftPosition,
         });
       }
     }
@@ -169,89 +204,118 @@ export default function InvoiceTable({ items, setItems, onTotalChange }: Invoice
     setOpenDropdownId(null);
   };
 
-  // Render dropdown menu as portal
+  // Get subheading from menu item
+  const getSubHeading = (subItem: SubItem): string => {
+    if (isMenuItem(subItem)) {
+      return subItem.name;
+    }
+    return "";
+  };
+
+  // Get items array from menu item
+  const getItemsArray = (subItem: SubItem): string[] => {
+    if (isMenuItem(subItem)) {
+      return subItem.items;
+    }
+    if (isStringArray(subItem)) {
+      return subItem;
+    }
+    return [];
+  };
+
+  // Render dropdown menu
   const renderDropdownMenu = () => {
     if (!openDropdownId) return null;
 
     return (
-      <div 
-        ref={dropdownRef}
-        className="fixed z-[9999] w-80 sm:w-96 max-h-96 overflow-y-auto bg-white border-2 border-gray-300 rounded-lg shadow-2xl"
-        style={{
-          top: dropdownPosition.top,
-          left: dropdownPosition.left,
-          maxWidth: 'calc(100vw - 20px)',
-        }}
-      >
-        {menuData.map((section, idx) => (
-          <div key={idx}>
-            {/* Main Heading */}
-            <div className="sticky top-0 bg-emerald-600 text-white px-3 sm:px-4 py-2 font-bold text-sm sm:text-base">
-              {section.mainHeading}
-            </div>
-            
-            {/* If subItems is empty (like Boost Up), just add the heading as selectable */}
-            {section.subItems.length === 0 && section.mainHeading === "Boost Up" && (
-              <div
-                onClick={() => handleSelectItem(openDropdownId, section.mainHeading, "", section.mainHeading)}
-                className="px-3 sm:px-4 py-2 hover:bg-emerald-50 cursor-pointer border-b border-gray-100 text-gray-700 text-sm"
-              >
-                {section.mainHeading}
-              </div>
-            )}
-            
-            {/* Render sub sections */}
-            {section.subItems.map((subItem, subIdx) => {
-              const subHeading = typeof subItem === 'object' && 'name' in subItem ? subItem.name : '';
-              const itemList = typeof subItem === 'object' && 'items' in subItem ? subItem.items : [];
-              
-              return (
-                <div key={subIdx}>
-                  {subHeading && (
-                    <div className="bg-gray-100 px-3 sm:px-4 py-1.5 text-xs font-semibold text-gray-700 border-b border-gray-200">
-                      📦 {subHeading}
-                    </div>
-                  )}
-                  
-                  {itemList.map((itemName, itemIdx) => (
-                    <div
-                      key={itemIdx}
-                      onClick={() => handleSelectItem(openDropdownId, section.mainHeading, subHeading, itemName)}
-                      className="px-4 sm:px-6 py-2 hover:bg-emerald-50 cursor-pointer border-b border-gray-50 text-gray-700 text-sm transition-colors duration-150"
-                    >
-                      • {itemName}
-                    </div>
-                  ))}
+      <>
+        {/* Backdrop for mobile - closes dropdown when tapping outside */}
+        <div 
+          className="fixed inset-0 z-[9998] bg-black/30 md:hidden"
+          onClick={() => setOpenDropdownId(null)}
+        />
+        <div 
+          ref={dropdownRef}
+          className="fixed z-[9999] bg-white border-2 border-gray-300 rounded-lg shadow-2xl overflow-hidden"
+          style={{
+            top: dropdownPosition.top,
+            left: dropdownPosition.left,
+            width: 'calc(100vw - 32px)',
+            maxWidth: '384px',
+            maxHeight: '70vh',
+          }}
+        >
+          <div className="max-h-[70vh] overflow-y-auto">
+            {menuData.map((section, idx) => (
+              <div key={idx}>
+                {/* Main Heading */}
+                <div className="sticky top-0 bg-emerald-600 text-white px-4 py-2.5 font-bold text-sm">
+                  {section.mainHeading}
                 </div>
-              );
-            })}
-            
-            {/* For Prisma and Water which have subHeading empty but items directly */}
-            {section.subItems.map((subItem, subIdx) => {
-              const subHeading = typeof subItem === 'object' && 'name' in subItem ? subItem.name : '';
-              const itemList = typeof subItem === 'object' && 'items' in subItem ? subItem.items : [];
-              
-              if (!subHeading && itemList.length > 0) {
-                // Filter out duplicates for Water section
-                let uniqueItems = itemList;
-                if (section.mainHeading === "Water") {
-                  uniqueItems = [...new Set(itemList)];
-                }
-                return uniqueItems.map((itemName, itemIdx) => (
+                
+                {/* Handle Boost Up (no subitems) */}
+                {section.mainHeading === "Boost Up" && section.subItems.length === 0 && (
                   <div
-                    key={`direct-${subIdx}-${itemIdx}`}
-                    onClick={() => handleSelectItem(openDropdownId, section.mainHeading, "", itemName)}
-                    className="px-4 sm:px-6 py-2 hover:bg-emerald-50 cursor-pointer border-b border-gray-50 text-gray-700 text-sm transition-colors duration-150"
+                    onClick={() => handleSelectItem(openDropdownId, section.mainHeading, "", section.mainHeading)}
+                    className="px-4 py-2.5 hover:bg-emerald-50 cursor-pointer border-b border-gray-100 text-gray-700 text-sm active:bg-emerald-100"
                   >
-                    • {itemName}
+                    {section.mainHeading}
                   </div>
-                ));
-              }
-              return null;
-            })}
+                )}
+                
+                {/* Handle Water separately to avoid duplicates */}
+                {section.mainHeading === "Water" && (
+                  <div>
+                    {section.subItems.map((subItem, subIdx) => {
+                      const itemList = getItemsArray(subItem);
+                      const uniqueItems = [...new Set(itemList)];
+                      return uniqueItems.map((itemName, itemIdx) => (
+                        <div
+                          key={`water-${subIdx}-${itemIdx}`}
+                          onClick={() => handleSelectItem(openDropdownId, section.mainHeading, "", itemName)}
+                          className="px-4 py-2.5 hover:bg-emerald-50 cursor-pointer border-b border-gray-50 text-gray-700 text-sm active:bg-emerald-100"
+                        >
+                          • {itemName}
+                        </div>
+                      ));
+                    })}
+                  </div>
+                )}
+                
+                {/* Handle all other sections (CSD, Tetra, Prisma, Frooti) */}
+                {section.mainHeading !== "Boost Up" && section.mainHeading !== "Water" && (
+                  <div>
+                    {section.subItems.map((subItem, subIdx) => {
+                      const subHeading = getSubHeading(subItem);
+                      const itemList = getItemsArray(subItem);
+                      
+                      return (
+                        <div key={subIdx}>
+                          {subHeading && (
+                            <div className="bg-gray-100 px-4 py-2 text-xs font-semibold text-gray-700 border-b border-gray-200">
+                              📦 {subHeading}
+                            </div>
+                          )}
+                          
+                          {itemList.map((itemName, itemIdx) => (
+                            <div
+                              key={`${subIdx}-${itemIdx}`}
+                              onClick={() => handleSelectItem(openDropdownId, section.mainHeading, subHeading, itemName)}
+                              className="px-4 py-2.5 hover:bg-emerald-50 cursor-pointer border-b border-gray-50 text-gray-700 text-sm active:bg-emerald-100"
+                            >
+                              • {itemName}
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </div>
+      </>
     );
   };
 
@@ -266,7 +330,7 @@ export default function InvoiceTable({ items, setItems, onTotalChange }: Invoice
                 <span className="text-xs text-gray-500 font-semibold">#{item.sr}</span>
                 <button
                   onClick={() => deleteRow(item.id)}
-                  className="text-red-500 hover:text-red-700 p-1"
+                  className="text-red-500 hover:text-red-700 p-2 active:bg-red-50 rounded"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -289,7 +353,7 @@ export default function InvoiceTable({ items, setItems, onTotalChange }: Invoice
                         else buttonRefs.current.delete(item.id);
                       }}
                       onClick={() => setOpenDropdownId(openDropdownId === item.id ? null : item.id)}
-                      className="px-3 py-2 bg-gray-100 border border-l-0 border-gray-300 rounded-r hover:bg-gray-200"
+                      className="px-3 py-2 bg-gray-100 border border-l-0 border-gray-300 rounded-r hover:bg-gray-200 active:bg-gray-300"
                     >
                       <ChevronDown className="w-4 h-4" />
                     </button>
@@ -339,7 +403,7 @@ export default function InvoiceTable({ items, setItems, onTotalChange }: Invoice
           
           <button
             onClick={addNewRow}
-            className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-medium"
+            className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-medium active:bg-emerald-800"
           >
             <Plus className="w-4 h-4" />
             Add Item
@@ -440,7 +504,7 @@ export default function InvoiceTable({ items, setItems, onTotalChange }: Invoice
         </div>
       </div>
       
-      {/* Render dropdown outside the table */}
+      {/* Render dropdown */}
       {renderDropdownMenu()}
     </>
   );
