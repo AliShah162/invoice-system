@@ -83,15 +83,26 @@ export default function InvoiceTable({ items, setItems, onTotalChange }: Invoice
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Calculate position when dropdown opens
+  // Calculate position when dropdown opens - FIXED to position better
   useEffect(() => {
     if (openDropdownId && buttonRefs.current.has(openDropdownId)) {
       const button = buttonRefs.current.get(openDropdownId);
       if (button) {
         const rect = button.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        const dropdownHeight = 400; // Approximate height of dropdown
+        
+        // Calculate if dropdown fits below, otherwise show above
+        let topPosition = rect.bottom + window.scrollY;
+        
+        // If dropdown would go off screen, position it above the button
+        if (rect.bottom + dropdownHeight > viewportHeight) {
+          topPosition = rect.top + window.scrollY - dropdownHeight;
+        }
+        
         setDropdownPosition({
-          top: rect.bottom + window.scrollY,
-          left: Math.max(10, rect.left + window.scrollX - 160),
+          top: topPosition,
+          left: rect.left + window.scrollX,
         });
       }
     }
@@ -165,10 +176,11 @@ export default function InvoiceTable({ items, setItems, onTotalChange }: Invoice
     return (
       <div 
         ref={dropdownRef}
-        className="fixed z-[9999] w-72 sm:w-80 max-h-80 overflow-y-auto bg-white border-2 border-gray-300 rounded-lg shadow-2xl"
+        className="fixed z-[9999] w-80 sm:w-96 max-h-96 overflow-y-auto bg-white border-2 border-gray-300 rounded-lg shadow-2xl"
         style={{
           top: dropdownPosition.top,
           left: dropdownPosition.left,
+          maxWidth: 'calc(100vw - 20px)',
         }}
       >
         {menuData.map((section, idx) => (
@@ -205,7 +217,7 @@ export default function InvoiceTable({ items, setItems, onTotalChange }: Invoice
                     <div
                       key={itemIdx}
                       onClick={() => handleSelectItem(openDropdownId, section.mainHeading, subHeading, itemName)}
-                      className="px-4 sm:px-6 py-1.5 sm:py-2 hover:bg-emerald-50 cursor-pointer border-b border-gray-50 text-gray-700 text-xs sm:text-sm transition-colors duration-150"
+                      className="px-4 sm:px-6 py-2 hover:bg-emerald-50 cursor-pointer border-b border-gray-50 text-gray-700 text-sm transition-colors duration-150"
                     >
                       • {itemName}
                     </div>
@@ -220,11 +232,16 @@ export default function InvoiceTable({ items, setItems, onTotalChange }: Invoice
               const itemList = typeof subItem === 'object' && 'items' in subItem ? subItem.items : [];
               
               if (!subHeading && itemList.length > 0) {
-                return itemList.map((itemName, itemIdx) => (
+                // Filter out duplicates for Water section
+                let uniqueItems = itemList;
+                if (section.mainHeading === "Water") {
+                  uniqueItems = [...new Set(itemList)];
+                }
+                return uniqueItems.map((itemName, itemIdx) => (
                   <div
                     key={`direct-${subIdx}-${itemIdx}`}
                     onClick={() => handleSelectItem(openDropdownId, section.mainHeading, "", itemName)}
-                    className="px-4 sm:px-6 py-1.5 sm:py-2 hover:bg-emerald-50 cursor-pointer border-b border-gray-50 text-gray-700 text-xs sm:text-sm transition-colors duration-150"
+                    className="px-4 sm:px-6 py-2 hover:bg-emerald-50 cursor-pointer border-b border-gray-50 text-gray-700 text-sm transition-colors duration-150"
                   >
                     • {itemName}
                   </div>
